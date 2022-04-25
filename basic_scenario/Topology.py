@@ -1,5 +1,5 @@
 from shard_sim.Shard import Shard
-from shard_sim.Node import Node
+from shard_sim.Node import NodeL1
 
 class Topology():
 
@@ -9,9 +9,9 @@ class Topology():
     def setup_topology():
         shard_1 = Shard('MyShard')
 
-        node_1 = Node('one')
-        node_2 = Node('two')
-        node_3 = Node('three')
+        node_1 = NodeL1('one')
+        node_2 = NodeL1('two')
+        node_3 = NodeL1('three')
 
         shard_1.add_node(node_1)
         shard_1.add_node(node_2)

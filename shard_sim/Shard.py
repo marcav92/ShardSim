@@ -29,7 +29,7 @@ class Shard():
                 self.node_graph[str(node_j.id)].append(str(node_i.id))
 
                 node_i.set_membership(self.id)
-                node_i.add_neighbor(node_j)
+                node_i.add_intrashard_neighbor(node_j)
 
                 node_j.set_membership(self.id)
-                node_j.add_neighbor(node_i)
+                node_j.add_intrashard_neighbor(node_i)
