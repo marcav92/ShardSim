@@ -2,6 +2,7 @@ import uuid
 from shard_sim.Block import Block
 from shard_sim.Event import Event
 from shard_sim.Queue import Queue
+import shard_sim.Constants as c
 
 class SimulationLogger():
     def __init__(self):
@@ -33,6 +34,14 @@ class NodeL1(SimulationLogger):
     """
         original methods
     """
+
+    def receive_event_L1(self, event):
+        if event.type == c.EVT_RECEIVE_TRANSACTION:
+            self.propagate_transaction(event)
+        
+        else:
+            raise Exception('Event type cant be handled at layer 1')
+
     def generate_genesis_block(nodes_list):
         for node in nodes_list:
             node.blockchain.append(Block())
@@ -50,6 +59,9 @@ class NodeL1(SimulationLogger):
 
     def add_intrashard_neighbor(self,node):
         self.intrashard_neighbors.append(node)
+
+    def add_crossshard_neighbor(self, node):
+        self.crossshard_neighbors.append(node)
         
     def set_membership(self, shard_id):
         self.membership = shard_id
@@ -61,7 +73,7 @@ class NodeL1(SimulationLogger):
         if event.data.id not in [transaction.id for transaction in self.transactions_pool]:
             for node in self.intrashard_neighbors:
                 #create function to calculate time delay
-                Queue.add_event(Event('receive_transaction', node.id, event.time+0.5, event.data, event.id))
+                Queue.add_event(Event(c.EVT_RECEIVE_TRANSACTION, node.id, event.time+0.5, event.data, event.id))
                 self.log_event(event)
             self.transactions_pool.append(event.data)
     
@@ -69,13 +81,59 @@ class NodeL1(SimulationLogger):
 
 class NodeL2BasicRivet(NodeL1):
 
-    def __init__(self, id = None):
+    def __init__(self, shard_type, id = None):
         super().__init__(id)
         self.blockchain = []
+        self.shard_type = shard_type
 
-    def worker_shard_leader():
+    #==================================
+    # basic rivet protocol
+    #==================================
+
+    def receive_event_L2(self, event):
+        if event.type == c.EVT_WORKER_CREATE_BLOCK:
+            self.rivet_worker_shard_create_block(event)    
+        elif event.type == c.EVT_WORKER_VERIFY_BLOCK: 
+            self.rivet_worker_shard_verify_block(event)
+        elif event.type == c.EVT_REFERENCE_CREATE_BLOCK:
+            pass
+        elif event.type == c.EVT_REFERENCE_VERIFY_BLOCK:
+            pass
+
+    def rivet_worker_shard_create_block(self, event):
+        
+        block = {
+            'transactions': self.transactions_pool,
+            'timestamp': event.time
+        }
+
+        self.blockchain.append(block)
+        self.log_event(event)
+        self.rivet_propagate_block(block, event)
+        
+
+    def rivet_reference_shard_create_block():
+        pass
+
+    def rivet_worker_shard_verify_block(self, event):
+        self.blockchain.append(event.data)
+
+    def rivet_reference_shard_verify_block():
+        pass
+
+    def rivet_propagate_block(self, block, event):
+        for node in self.intrashard_neighbors:
+            Queue.add_event(Event(c.EVT_WORKER_VERIFY_BLOCK, node.id, event.time+0.5, block))
+            self.log_event(event)
+        
+
+    def rivet_commit_block():
+        pass
+
+    def rivet_worker_check_reference():
         pass
 
 
     #implement consensus as a factory
     #https://stackoverflow.com/questions/40898482/defining-method-of-class-in-if-statement
+    

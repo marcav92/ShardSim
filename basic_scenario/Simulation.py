@@ -6,9 +6,12 @@ from shard_sim.Client import Client
 from shard_sim.Event import Event
 from shard_sim.Queue import Queue
 from shard_sim.Transaction import Transaction
+from shard_sim.EventHandler import EventHandler
+import shard_sim.Constants as c
 
 #there needs to be a setup phase
-my_shard = Topology.setup_topology()
+Topology.setup_topology()
+environment = Topology.environment
 my_client = Client('me')
 now = 0
 
@@ -18,26 +21,24 @@ my_client.send_transaction(Transaction(0, '0xABC', '0x456'), 'one', 0.5, 'ciao')
 my_client.send_transaction(Transaction(0, '0x1EF', '0x456'), 'two', 1.5, 'hallo')
 my_client.send_transaction(Transaction(0, '0x123', '0x789'), 'three', 2.5, 'hola')
 my_client.send_transaction(Transaction(0, '0x123', '0x789'), 'one', 3.5, 'bonjour')
+Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, 'one', 6, 'create', 'genesis'))
 
 
-def handle_event(event):
-    if event.type == 'send_transaction':
-        Queue.add_event(Event('receive_transaction', event.node, event.time+0.5, event.data, event.id))
-
-    elif event.type == 'receive_transaction':
-        for node in my_shard.nodes:
-            if node.id == event.node:
-                node.propagate_transaction(event)
 
 #run phase
 while (not Queue.isEmpty()):
     event = Queue.get_next_event()
     now = event.time
-    print(f'{now} - {event}')
-    handle_event(event)
+    # print(f'{now} - {event}')
+    EventHandler.handle_event(event, environment)
 
 #debug
-# print(f'Node one event log {my_shard.nodes[0].event_log}')
+
+# print(environment)
+
+print(f"blockchain node one {environment['one'].blockchain}")
+print(f"blockchain node two {environment['two'].blockchain}")
+
 # print(f'Node two event log {my_shard.nodes[1].event_log}')
 # print(f'Node three event log {my_shard.nodes[2].event_log}')
 
