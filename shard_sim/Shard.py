@@ -2,15 +2,21 @@ import uuid
 
 class Shard():
     
-    def __init__(self, id=None):
+    def __init__(self, type, id=None):
+        self.type = type
         self.id = id if id else uuid.uuid4()
         self.nodes = []
         self.node_graph = {}
+        self.account_set = {}
 
     def __repr__(self):
         return f'''
             node_graph  :   {self.node_graph}    
         '''
+
+    def get_nodes(self):
+        return self.nodes
+        
     def define_shard_neighbors(shard_a, shard_b, number_of_connections):
         if number_of_connections < len(shard_a.nodes):
             raise Exception('Shard doesnt have enough nodes for the amount of connections specified')
@@ -24,6 +30,9 @@ class Shard():
             self.node_graph[str(node.id)] = []
         else:
             print('provided node already exists')
+
+    def add_account(self, account):
+        self.account_set[account] = 1
 
     def define_neighbors(self, node_i, node_j):
         if str(node_i.id) not in self.node_graph or \

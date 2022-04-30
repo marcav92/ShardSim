@@ -11,8 +11,10 @@
 
 import time
 import datetime
+from random import randint
 from shard_sim.Event import Event
 from shard_sim.Queue import Queue
+from shard_sim.Transaction import Transaction
 import shard_sim.Constants as c
 
 class Scheduler():
@@ -22,43 +24,59 @@ class Scheduler():
         # reference_node_frequency,
         # worker_node_frequency,
         # with_jitter,
+        #TODO I need to create types of scheduler as different protocols
+        #will need different schedules
         ):
-        self.raw_transactions = []
+        pass
 
-    def load_transactions_from_file(self, file_name):
-        with open(file_name) as f:
-            lines = f.readlines()
-            for idx, line in enumerate(lines):
-                if idx == 0:
-                    continue
-                line_array = line.split('\t')
-                self.raw_transactions.append({
-                    'timestamp': Scheduler.str_to_timestamp(line_array[3]),
-                    'sender': line_array[6],
-                    'recipient': line_array[7]
-                })
+    def calculate_simulation_duration(self, transactions):
+        return transactions[-1]['timestamp']-transactions[0]['timestamp']
 
-    def str_to_timestamp(time_string):
-        date_time_obj = datetime.datetime.strptime(time_string, '%Y-%m-%d %H:%M:%S')
-        return time.mktime(date_time_obj.timetuple())
+    def add_transaction_events_to_queue(self, transactions, topology):
+        worker_shards_array = topology.get_worker_shards()
 
-    def calculate_simulation_duration(self):
-        return self.raw_transactions[-1]['timestamp']-self.raw_transactions[0]['timestamp']
+        for transaction in transactions:
+            sender_shard = topology.addresses_map[transaction['sender']]
+            recipient_shard = topology.addresses_map[transaction['recipient']]
 
-    def assign_accounts_to_shards(self):
+            if sender_shard == recipient_shard:
+                #intrashard transaction
+                #find random node from shard
+                #find timestamp offset
+                #create transaction object with the data
+                #no event id is needed
+                destination_shard = worker_shards_array[sender_shard]
+                nodes = destination_shard.get_nodes()
+                selected_node = randint(0, len(nodes))
+                event_time = transaction['timestamp'] - transactions[0]['timestamp']
+                event_data = Transaction(0, transaction['sender'], transaction['recipient'])
+                Queue.add_event(Event(c.EVT_RECEIVE_TRANSACTION, nodes[selected_node].id, event_time, event_data))
 
-    # def add_transaction_events_to_queue(self):
-    #     Queue.add_event(Event(c.EVT_RECEIVE_TRANSACTION, node.id, event.time+0.5, event.data, event.id))
-    #     pass
-            
+            else:
+                #crossshard transaction
+                #TODO there are a couple of details that I still need to figure out for 
+                #TODO crossshard transactions
+                #it will be necessary to take in consideration how will this happen
+                #in a multilayer topology
+                pass
+        
+    def add_create_block_events_to_queue(self,transactions, topology, period):
+        #this is currently going to work for all nodes
+        #TODO add the posibility to spcify different frequencies per shard/layer
+        node_array = topology.get_nodes()
+        
+        for node in node_array:
+            sim_time=0
+            simulation_duration = self.calculate_simulation_duration(transactions)
+            while sim_time < simulation_duration:
+                if node.shard_type == c.WORKER:
+                    Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, node.id, sim_time, 'create_worker_block'))
+                elif node.shard_type == c.REFERENCE:
+                    Queue.add_event(Event(c.EVT_REFERENCE_CREATE_BLOCK, node.id, sim_time, 'create_reference_block'))
 
+                #TODO define other random functions
+                jitter = randint(0, period//10)
+                sim_time += period + jitter if jitter > period//20 else period - jitter
 
-
-scheduler = Scheduler()
-scheduler.load_transactions_from_file('static_data/data')
-
-
-# print(scheduler.raw_transactions[100][0])
-# print(scheduler.raw_transactions[100][1])
-# print(scheduler.raw_transactions[100][2])
-print(scheduler.calculate_simulation_duration())
+    def add_worker_commit_block_event(self):
+        pass
