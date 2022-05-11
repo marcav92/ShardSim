@@ -60,23 +60,35 @@ class Scheduler():
                 #in a multilayer topology
                 pass
         
-    def add_create_block_events_to_queue(self,transactions, topology, period):
-        #this is currently going to work for all nodes
-        #TODO add the posibility to spcify different frequencies per shard/layer
-        node_array = topology.get_nodes()
+    # def add_create_block_events_to_queue(self,transactions, topology, period):
+    #     #this is currently going to work for all nodes
+    #     #TODO add the posibility to spcify different frequencies per shard/layer
+    #     node_array = topology.get_nodes()
         
-        for node in node_array:
-            sim_time=0
-            simulation_duration = self.calculate_simulation_duration(transactions)
-            while sim_time < simulation_duration:
-                if node.shard_type == c.WORKER:
-                    Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, node.id, sim_time, 'create_worker_block'))
-                elif node.shard_type == c.REFERENCE:
-                    Queue.add_event(Event(c.EVT_REFERENCE_CREATE_BLOCK, node.id, sim_time, 'create_reference_block'))
+    #     for node in node_array:
+    #         sim_time=0
+    #         simulation_duration = self.calculate_simulation_duration(transactions)
+    #         while sim_time < simulation_duration:
+    #             if node.shard_type == c.WORKER:
+    #                 Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, node.id, sim_time, 'create_worker_block'))
+    #             elif node.shard_type == c.REFERENCE:
+    #                 Queue.add_event(Event(c.EVT_REFERENCE_CREATE_BLOCK, node.id, sim_time, 'create_reference_block'))
 
-                #TODO define other random functions
-                jitter = randint(0, period//10)
-                sim_time += period + jitter if jitter > period//20 else period - jitter
+    #             #TODO define other random functions
+    #             jitter = randint(0, period//10)
+    #             sim_time += period + jitter if jitter > period//20 else period - jitter
+
+    def add_create_block_events_to_queue(self, topology):
+
+        node_array = topology.get_nodes()
+
+        for node in node_array:
+            jitter = randint(0, 60)#it may be necessary to make this a parameter
+            if node.shard_type == c.WORKER:
+                Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, node.id, 0, 'create_worker_block'))
+            elif node.shard_type == c.REFERENCE:
+                Queue.add_event(Event(c.EVT_REFERENCE_CREATE_BLOCK, node.id, 0, 'create_reference_block'))
+
 
     def add_worker_commit_block_event(self):
         pass
