@@ -23,6 +23,7 @@ class Event(object):
             type:   {self.type} 
             node:   {self.node}
             time:   {self.time}
+            data:   {self.data}
         '''
         
 

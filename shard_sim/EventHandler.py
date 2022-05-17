@@ -8,14 +8,10 @@ class EventHandler():
         if event.type == c.EVT_SEND_TRANSACTION:
             Queue.add_event(Event(c.EVT_RECEIVE_TRANSACTION, event.node, event.time+0.5, event.data, event.id))
 
+        #TODO: this implementation should not go here because this is specific to a protocol
         elif event.type == c.EVT_RECEIVE_TRANSACTION:
             sim_environment[event.node].receive_event_L1(event)
 
-        elif event.type == c.EVT_WORKER_CREATE_BLOCK:
+        elif event.type == c.EVT_REFERENCE_HOT_STUFF_MESSAGE:
             sim_environment[event.node].receive_event_L2(event)
-
-        elif event.type == c.EVT_WORKER_VERIFY_BLOCK:
-            sim_environment[event.node].receive_event_L2(event)
-        # else:
-        #     raise Exception('Unkown event')
                 

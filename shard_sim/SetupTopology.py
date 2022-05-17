@@ -1,6 +1,3 @@
-from os import environ
-from shard_sim.Shard import Shard
-from shard_sim.Node import NodeL1, NodeL2BasicRivet
 import shard_sim.Constants as c
 
 class Topology():

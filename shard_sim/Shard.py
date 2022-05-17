@@ -18,7 +18,7 @@ class Shard():
         return self.nodes
         
     def define_shard_neighbors(shard_a, shard_b, number_of_connections):
-        if number_of_connections < len(shard_a.nodes):
+        if number_of_connections > len(shard_a.nodes):
             raise Exception('Shard doesnt have enough nodes for the amount of connections specified')
         for idx, node in enumerate(shard_a.nodes):
             node.add_crossshard_neighbor(shard_b.nodes[idx])
@@ -26,6 +26,7 @@ class Shard():
 
     def add_node(self, node):
         if node not in self.nodes:
+            node.define_shard(self)
             self.nodes.append(node)
             self.node_graph[str(node.id)] = []
         else:
@@ -49,3 +50,31 @@ class Shard():
                 node_j.set_membership(self.id)
                 node_j.add_intrashard_neighbor(node_i)
 
+
+class Shard_Hot_Stuff(Shard):
+
+    def __init__(self, type, id=None):
+        super().__init__(type, id)
+        self.view_id_map = {}
+        self.f_value = 0
+        self.n_value = 0
+
+    def get_n_f_value(self):
+        return self.n_value - self.f_value
+
+    def assign_view_numbers(self):
+        for idx, node in enumerate(self.nodes):
+            node.set_view_number(idx)
+            self.view_id_map[idx]=node.id
+
+    def calculate_maximum_amount_faulty_nodes(self):
+        #check if number of replicas yields an integer number of maximum faulty nodes n = 3f + 1
+        if ((len(self.nodes)-1) % 3 != 0):
+            raise Exception("Amount of replicas in shard doesn't comply with n=3f+1")
+
+        self.f_value = (len(self.nodes)-1)//3
+
+    def add_node_hot_stuff(self, node):
+        self.add_node(node)
+        self.n_value += 1
+        self.assign_view_numbers()

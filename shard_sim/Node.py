@@ -1,8 +1,10 @@
+
 import uuid
 from shard_sim.Block import Block
 from shard_sim.Event import Event
 from shard_sim.Queue import Queue
 import shard_sim.Constants as c
+import time
 
 class SimulationLogger():
     def __init__(self):
@@ -12,50 +14,13 @@ class SimulationLogger():
         self.event_log.append(event)
 
 
-
-
-class NodeL1(SimulationLogger):
-
+class NodeBase(SimulationLogger):
     def __init__(self, id=None):
         super().__init__()
         self.id = id if id else uuid.uuid4()
-        self.transactions_pool = []
         self.membership = ''
         self.intrashard_neighbors = []
         self.crossshard_neighbors = []
-
-    def __repr__(self):
-        return f'''
-            id                  :   {self.id}
-            blockchain          :   {self.blockchain}
-            transactionPool     :   {self.transactions_pool}
-            intrashard neighbors:   {self.intrashard_neighbors}
-        '''
-    """
-        original methods
-    """
-
-    def receive_event_L1(self, event):
-        if event.type == c.EVT_RECEIVE_TRANSACTION:
-            self.propagate_transaction(event)
-        
-        else:
-            raise Exception('Event type cant be handled at layer 1')
-
-    def generate_genesis_block(nodes_list):
-        for node in nodes_list:
-            node.blockchain.append(Block())
-
-    def get_last_block(self):
-        return self.blockchain[len(self.blockchain)-1]
-
-    def get_blockchain_length(self):
-        return len(self.blockchain)-1
-
-    def reset_state(nodes_list):
-        for node in nodes_list:
-            node.blockchain=[]
-            node.transactions_pool=[]
 
     def add_intrashard_neighbor(self,node):
         self.intrashard_neighbors.append(node)
@@ -66,8 +31,32 @@ class NodeL1(SimulationLogger):
     def set_membership(self, shard_id):
         self.membership = shard_id
 
+
+class NodeL1(NodeBase):
+
+    def __init__(self, id=None):
+        super().__init__(id)
+        self.transactions_pool = []
+
+    def __repr__(self):
+        return f'''
+            id                  :   {self.id}
+            transactionPool     :   {self.transactions_pool}
+            intrashard neighbors:   {self.intrashard_neighbors}
+        '''
+
+    def receive_event_L1(self, event):
+        if event.type == c.EVT_RECEIVE_TRANSACTION:
+            self.propagate_transaction(event)
+        
+        else:
+            raise Exception('Event type cant be handled at layer 1')
+
+    def reset_state_transactions_pool(nodes_list):
+        for node in nodes_list:
+            node.transactions_pool=[]
+
     def propagate_transaction(self, event):
-        #print(f'propagating transaction {event.data}')
 
         #events could have several types i.e transaction, block
         if event.data.id not in [transaction.id for transaction in self.transactions_pool]:
@@ -79,61 +68,233 @@ class NodeL1(SimulationLogger):
     
 
 
-class NodeL2BasicRivet(NodeL1):
+class NodeL2BasicHotStuff(NodeL1):
 
-    def __init__(self, shard_type, id = None):
+    def __init__(self, id = None):
         super().__init__(id)
         self.blockchain = []
-        self.shard_type = shard_type
+        self.shard = None
+        self.view_number = 0
+        self.current_view_number = 0
+        self.new_view_messages = 0
+        self.prepare_vote_messages = 0
+        self.precommit_vote_messages = 0
+        self.commit_vote_messages = 0
+        self.current_phase=c.PREPARE
+        self.is_leader = False
+
+    def reset_hot_stuff_bookeeping_variables(self):
+        self.current_phase = c.PREPARE
+        self.new_view_messages = 0
+        self.prepare_vote_messages = 0
+        self.precommit_vote_messages = 0
+        self.commit_vote_messages = 0
+        self.is_leader = False
+
+    def define_shard(self, shard):
+        self.shard = shard
+
+    def set_view_number(self, number):
+        self.view_number = number
+
+    def generate_genesis_block(nodes_list):
+        for node in nodes_list:
+            node.blockchain.append(Block())
+
+    def get_last_block(self):
+        return self.blockchain[len(self.blockchain)-1]
+
+    def get_blockchain_length(self):
+        return len(self.blockchain)-1
 
     #==================================
-    # basic rivet protocol
+    # basic hot stuff protocol
     #==================================
+
+    def broadcast_message(self, event, message):
+        for node in self.shard.nodes:
+            if node.id == self.id:
+                continue
+            else:
+                #TODO: Add time delay function
+                Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, node.id, event.time+25,message))
+
+    def create_next_view_interrupt(self, event):
+        Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.id, event.time+2500, {
+                "type": c.EVT_REFERENCE_HOT_STUFF_NEXT_VIEW_INTERRUPT,
+                "current_phase" : self.current_phase,
+                "current_view_number": self.current_view_number
+        }))
+
 
     def receive_event_L2(self, event):
-        if event.type == c.EVT_WORKER_CREATE_BLOCK:
-            self.rivet_worker_shard_create_block(event)    
-        elif event.type == c.EVT_WORKER_VERIFY_BLOCK: 
-            self.rivet_worker_shard_verify_block(event)
-        elif event.type == c.EVT_REFERENCE_CREATE_BLOCK:
-            pass
-        elif event.type == c.EVT_REFERENCE_VERIFY_BLOCK:
-            pass
+        time.sleep(2)
+        if event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_NEW_VIEW_MESSAGE:
+            self.hot_stuff_receive_new_view_message(event)
 
-    def rivet_worker_shard_create_block(self, event):
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_PREPARE_MESSAGE:
+            self.hot_stuff_receive_prepare_message(event)
+
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_PREPARE_VOTE_MESSAGE:
+            self.hot_stuff_receive_prepare_vote_message(event)
+
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_PRECOMMIT_MESSAGE:
+            self.hot_stuff_receive_precommit_message(event)
+
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_PRECOMMIT_VOTE_MESSAGE:
+            self.hot_stuff_receive_precommit_vote_message(event)
+
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_COMMIT_MESSAGE:
+            self.hot_stuff_receive_commit_message(event)
+
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_COMMIT_VOTE_MESSAGE:
+            self.hot_stuff_receive_commit_vote_message(event)
         
-        block = {
-            'transactions': self.transactions_pool,
-            'timestamp': event.time
-        }
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_DECIDE_MESSAGE:
+            self.hot_stuff_receive_decide_message(event)
 
-        self.blockchain.append(block)
-        self.log_event(event)
-        self.rivet_propagate_block(block, event)
+        elif event.data["type"] == c.EVT_REFERENCE_HOT_STUFF_NEXT_VIEW_INTERRUPT:
+            self.hot_stuff_receive_next_view_interrupt(event)
+
+    def hot_stuff_receive_new_view_message(self, event):
+
+        if self.current_phase == c.PREPARE and event.data["current_view_number"]>=self.current_view_number:
+            self.new_view_messages += 1
+
+            if self.new_view_messages >= self.shard.get_n_f_value():
+                self.is_leader = True
+
+                message = {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_PREPARE_MESSAGE,
+                    "current_view_number": self.current_view_number
+                    #it oculd be necessary to put more details in here
+                }
+                self.broadcast_message(event, message)
+
+                self.current_phase = c.PRECOMMIT
+                self.create_next_view_interrupt(event)
+
+    def hot_stuff_receive_prepare_message(self, event):
+        #determine if the PREPARE message should be accepted
+        if self.current_phase == c.PREPARE and event.data["current_view_number"]>=self.current_view_number:
+            Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.shard.view_id_map[self.current_view_number % self.shard.n_value], event.time+25, {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_PREPARE_VOTE_MESSAGE,
+                    "current_view_number": self.current_view_number
+                }))
+            
+            self.current_phase = c.PRECOMMIT
+            self.create_next_view_interrupt(event)
         
+    def hot_stuff_receive_prepare_vote_message(self, event):
+        if self.current_phase == c.PRECOMMIT and event.data["current_view_number"]>=self.current_view_number:
+            self.prepare_vote_messages += 1
 
-    def rivet_reference_shard_create_block():
-        pass
+            if self.prepare_vote_messages >= self.shard.get_n_f_value():
+                #broadcast pre-commit
 
-    def rivet_worker_shard_verify_block(self, event):
-        self.blockchain.append(event.data)
+                message = {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_PRECOMMIT_MESSAGE,
+                    "current_view_number": self.current_view_number
+                    #it oculd be necessary to put more details in here
+                }
+                self.broadcast_message(event, message)
 
-    def rivet_reference_shard_verify_block():
-        pass
-
-    def rivet_propagate_block(self, block, event):
-        for node in self.intrashard_neighbors:
-            Queue.add_event(Event(c.EVT_WORKER_VERIFY_BLOCK, node.id, event.time+0.5, block))
-            self.log_event(event)
-        
-
-    def rivet_commit_block():
-        pass
-
-    def rivet_worker_check_reference():
-        pass
-
-
-    #implement consensus as a factory
-    #https://stackoverflow.com/questions/40898482/defining-method-of-class-in-if-statement
+                self.current_phase = c.COMMIT
+                self.create_next_view_interrupt(event)
     
+    def hot_stuff_receive_precommit_message(self, event):
+        if self.current_phase == c.PRECOMMIT and event.data["current_view_number"]>=self.current_view_number:
+            Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.shard.view_id_map[self.current_view_number % self.shard.n_value], event.time+25, {
+                "type": c.EVT_REFERENCE_HOT_STUFF_PRECOMMIT_VOTE_MESSAGE,
+                "current_view_number": self.current_view_number
+            }))
+
+            self.current_phase = c.COMMIT
+            self.create_next_view_interrupt(event)
+
+
+    def hot_stuff_receive_precommit_vote_message(self, event):
+        if self.current_phase == c.COMMIT and event.data["current_view_number"]>=self.current_view_number:
+            self.precommit_vote_messages += 1
+
+            if self.precommit_vote_messages >= self.shard.get_n_f_value():
+                #broadcast commit
+                message = {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_COMMIT_MESSAGE,
+                    #it oculd be necessary to put more details in here
+                    "current_view_number": self.current_view_number
+                }
+                self.broadcast_message(event, message)
+
+                self.current_phase = c.DECIDE
+                self.create_next_view_interrupt(event)
+
+    def hot_stuff_receive_commit_message(self, event):
+        if self.current_phase == c.COMMIT and event.data["current_view_number"]>=self.current_view_number:
+
+            Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.shard.view_id_map[self.current_view_number % self.shard.n_value], event.time+25, {
+                "type": c.EVT_REFERENCE_HOT_STUFF_COMMIT_VOTE_MESSAGE,
+                "current_view_number": self.current_view_number
+            }))
+
+            self.current_phase = c.DECIDE
+            self.create_next_view_interrupt(event)
+
+    def hot_stuff_receive_commit_vote_message(self, event):
+        if self.current_phase == c.DECIDE and event.data["current_view_number"]>=self.current_view_number:
+
+            self.commit_vote_messages += 1
+
+            if self.commit_vote_messages >= self.shard.get_n_f_value():
+                #broadcast commit
+                message = {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_DECIDE_MESSAGE,
+                    "current_view_number": self.current_view_number
+                    #it oculd be necessary to put more details in here
+                }
+                self.broadcast_message(event, message)
+
+                self.reset_hot_stuff_bookeeping_variables()
+                self.create_next_view_interrupt(event)
+
+                self.current_view_number += 1 
+
+                if (self.current_view_number % self.shard.n_value) != self.view_number:
+                    Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.shard.view_id_map[self.current_view_number  % self.shard.n_value], event.time+25, {
+                        "type": c.EVT_REFERENCE_HOT_STUFF_NEW_VIEW_MESSAGE,
+                        "current_view_number": self.current_view_number
+                    }))
+
+
+    def hot_stuff_receive_decide_message(self, event):
+
+        if self.current_phase == c.DECIDE and event.data["current_view_number"]>=self.current_view_number:
+        
+            self.reset_hot_stuff_bookeeping_variables()
+            self.create_next_view_interrupt(event)
+
+            self.current_view_number += 1 
+
+            if (self.current_view_number % self.shard.n_value) != self.view_number:
+                Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.shard.view_id_map[self.current_view_number % self.shard.n_value], event.time+25, {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_NEW_VIEW_MESSAGE,
+                    "current_view_number": self.current_view_number
+                }))
+
+    def hot_stuff_receive_next_view_interrupt(self, event):
+
+        if self.current_phase == event.data["current_phase"] and event.data["current_view_number"]>=self.current_view_number:
+            print('=================================')
+            print('= INTERRUPT SUCCEDED            =')
+            print('=================================')
+            self.current_phase = c.PREPARE
+            self.create_next_view_interrupt(event)
+
+            self.current_view_number += 1 
+
+            if (self.current_view_number % self.shard.n_value) != self.view_number:
+
+                Queue.add_event(Event(c.EVT_REFERENCE_HOT_STUFF_MESSAGE, self.shard.view_id_map[self.current_view_number % self.shard.n_value], event.time+25, {
+                    "type": c.EVT_REFERENCE_HOT_STUFF_NEW_VIEW_MESSAGE,
+                    "current_view_number": self.current_view_number
+                }))
