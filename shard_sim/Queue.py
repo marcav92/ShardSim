@@ -1,12 +1,13 @@
 import operator
 
+
 class Queue:
-    event_list=[]
+    event_list = []
 
     def __repr__():
-        return f'''
+        return f"""
             event_list: {Queue.event_list}
-        '''
+        """
 
     def add_event(event):
         Queue.event_list += [event]
@@ -15,7 +16,9 @@ class Queue:
         del Queue.event_list[0]
 
     def get_next_event():
-        Queue.event_list.sort(key=operator.attrgetter('time'), reverse=False) # sort events -> earliest one first
+        Queue.event_list.sort(
+            key=operator.attrgetter("time"), reverse=False
+        )  # sort events -> earliest one first
         return Queue.event_list.pop(0)
 
     def size():
