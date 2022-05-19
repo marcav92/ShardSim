@@ -1,4 +1,4 @@
-import shard_sim.Constants as c
+from shard_sim.Constants import *
 
 class Topology():
 
@@ -21,10 +21,10 @@ class Topology():
     def create_environment(self, shard_array):
 
         for shard in shard_array:
-            if shard.type == c.REFERENCE:
+            if shard.type == REFERENCE:
                 self.environment['reference_shards'].append(shard)
 
-            if shard.type == c.WORKER:
+            if shard.type == WORKER:
                 self.environment['worker_shards'].append(shard)
 
 
@@ -37,4 +37,3 @@ class Topology():
                 self.environment[node.id] = node
         
         return self.environment
-

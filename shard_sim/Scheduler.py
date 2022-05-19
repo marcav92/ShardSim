@@ -15,7 +15,7 @@ from random import randint
 from shard_sim.Event import Event
 from shard_sim.Queue import Queue
 from shard_sim.Transaction import Transaction
-import shard_sim.Constants as c
+from shard_sim.Constants import *
 
 class Scheduler():
 
@@ -50,7 +50,7 @@ class Scheduler():
                 selected_node = randint(0, len(nodes))
                 event_time = transaction['timestamp'] - transactions[0]['timestamp']
                 event_data = Transaction(0, transaction['sender'], transaction['recipient'])
-                Queue.add_event(Event(c.EVT_RECEIVE_TRANSACTION, nodes[selected_node].id, event_time, event_data))
+                Queue.add_event(Event(EVT_RECEIVE_TRANSACTION, nodes[selected_node].id, event_time, event_data))
 
             else:
                 #crossshard transaction
@@ -84,10 +84,10 @@ class Scheduler():
 
         for node in node_array:
             jitter = randint(0, 60)#it may be necessary to make this a parameter
-            if node.shard_type == c.WORKER:
-                Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, node.id, 0, 'create_worker_block'))
-            elif node.shard_type == c.REFERENCE:
-                Queue.add_event(Event(c.EVT_REFERENCE_CREATE_BLOCK, node.id, 0, 'create_reference_block'))
+            if node.shard_type == WORKER:
+                Queue.add_event(Event(EVT_WORKER_CREATE_BLOCK, node.id, 0, 'create_worker_block'))
+            elif node.shard_type == REFERENCE:
+                Queue.add_event(Event(EVT_REFERENCE_CREATE_BLOCK, node.id, 0, 'create_reference_block'))
 
 
     def add_worker_commit_block_event(self):

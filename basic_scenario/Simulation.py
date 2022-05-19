@@ -11,6 +11,7 @@ from shard_sim.Node import NodeL2BasicHotStuff
 from shard_sim.Shard import Shard, Shard_Hot_Stuff
 from shard_sim.TransactionPreprocessor import TransactionPreprocessor as Preprocessor
 import shard_sim.Constants as c
+import time
 
 #there needs to be a setup phase
 shard_1 = Shard_Hot_Stuff(c.WORKER,'MyShard')
@@ -72,7 +73,7 @@ environment = topology.create_environment([shard_1, shard_2, shard_3])
 
 preprocessor = Preprocessor()
 
-preprocessor.load_transactions_from_file('../shard_sim/static_data/data')
+preprocessor.load_transactions_from_file('./static_data/data')
 
 preprocessor.assign_accounts_to_shards(topology)
 
@@ -113,6 +114,7 @@ while (not Queue.isEmpty()):
     event = Queue.get_next_event()
     now = event.time
     print(event)
+    time.sleep(2)
     EventHandler.handle_event(event, environment)
 
 
