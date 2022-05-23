@@ -9,7 +9,7 @@ class EventHandler:
             Queue.add_event(
                 Event(
                     EVT_RECEIVE_TRANSACTION,
-                    event.node,
+                    event.node_id,
                     event.time + 0.5,
                     event.data,
                     event.id,
@@ -18,7 +18,10 @@ class EventHandler:
 
         # TODO: this implementation should not go here because this is specific to a protocol
         elif event.type == EVT_RECEIVE_TRANSACTION:
-            sim_environment[event.node].receive_event_L1(event)
+            sim_environment[event.node_id].receive_event_L1(event)
 
         elif event.type == EVT_REFERENCE_HOT_STUFF_MESSAGE:
-            sim_environment[event.node].receive_event_L2(event)
+            sim_environment[event.node_id].receive_event_L2(event)
+
+        elif event.type == EVT_REFERENCE_RIVET_MESSAGE:
+            sim_environment[event.node_id].receive_event_L2(event)

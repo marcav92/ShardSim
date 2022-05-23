@@ -12,10 +12,10 @@ class Event(object):
     :param obj data: the event content
     """
 
-    def __init__(self, type, node, time, data, id=None):
+    def __init__(self, type, node_id, time, data, id=None):
         self.id = id if id else uuid.uuid4()
         self.type = type
-        self.node = node
+        self.node_id = node_id
         self.time = time
         self.data = data
 
@@ -23,7 +23,7 @@ class Event(object):
         return f"""
             id  :   {self.id}
             type:   {self.type} 
-            node:   {self.node}
+            node_id:   {self.node_id}
             time:   {self.time}
             data:   {self.data}
         """

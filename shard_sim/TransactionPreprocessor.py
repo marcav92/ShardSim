@@ -1,5 +1,6 @@
 import time
 import datetime
+from shard_sim.Constants import *
 
 
 class TransactionPreprocessor:
@@ -22,15 +23,9 @@ class TransactionPreprocessor:
 
                 self.raw_transactions.append(
                     {
-                        "timestamp": TransactionPreprocessor.str_to_timestamp(
-                            line_array[3]
-                        ),
-                        "sender": line_array[
-                            6
-                        ],  # 6 is the position of the sender address  in the tsv file
-                        "recipient": line_array[
-                            7
-                        ],  # 7 is the position of the recipient address
+                        "timestamp": TransactionPreprocessor.str_to_timestamp(line_array[3]),
+                        "sender": line_array[6],  # 6 is the position of the sender address  in the tsv file
+                        "recipient": line_array[7],  # 7 is the position of the recipient address
                     }
                 )
 
@@ -39,7 +34,7 @@ class TransactionPreprocessor:
         return time.mktime(date_time_obj.timetuple())
 
     def assign_accounts_to_shards(self, topology):
-        shard_array = topology.get_worker_shards()
+        shard_array = topology.get_shards(WORKER)
 
         for transaction in self.raw_transactions:
             if transaction["sender"] not in topology.addresses_map:
@@ -51,9 +46,7 @@ class TransactionPreprocessor:
 
             if transaction["recipient"] not in topology.addresses_map:
                 # assignment of accounts to shards
-                assigned_shard = int(transaction["recipient"], base=16) % len(
-                    shard_array
-                )
+                assigned_shard = int(transaction["recipient"], base=16) % len(shard_array)
 
                 topology.addresses_map[transaction["recipient"]] = assigned_shard
                 shard_array[assigned_shard].add_account(transaction["recipient"])

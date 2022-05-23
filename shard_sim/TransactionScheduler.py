@@ -18,7 +18,7 @@ from shard_sim.Transaction import Transaction
 from shard_sim.Constants import *
 
 
-class Scheduler:
+class TransactionScheduler:
     def __init__(
         self,
         # environment,
@@ -34,7 +34,7 @@ class Scheduler:
         return transactions[-1]["timestamp"] - transactions[0]["timestamp"]
 
     def add_transaction_events_to_queue(self, transactions, topology):
-        worker_shards_array = topology.get_worker_shards()
+        worker_shards_array = topology.get_shards(WORKER)
 
         for transaction in transactions:
             sender_shard = topology.addresses_map[transaction["sender"]]
@@ -50,9 +50,7 @@ class Scheduler:
                 nodes = destination_shard.get_nodes()
                 selected_node = randint(0, len(nodes))
                 event_time = transaction["timestamp"] - transactions[0]["timestamp"]
-                event_data = Transaction(
-                    0, transaction["sender"], transaction["recipient"]
-                )
+                event_data = Transaction(0, transaction["sender"], transaction["recipient"])
                 Queue.add_event(
                     Event(
                         EVT_RECEIVE_TRANSACTION,
@@ -87,23 +85,3 @@ class Scheduler:
     #             #TODO define other random functions
     #             jitter = randint(0, period//10)
     #             sim_time += period + jitter if jitter > period//20 else period - jitter
-
-    def add_create_block_events_to_queue(self, topology):
-
-        node_array = topology.get_nodes()
-
-        for node in node_array:
-            jitter = randint(0, 60)  # it may be necessary to make this a parameter
-            if node.shard_type == WORKER:
-                Queue.add_event(
-                    Event(EVT_WORKER_CREATE_BLOCK, node.id, 0, "create_worker_block")
-                )
-            elif node.shard_type == REFERENCE:
-                Queue.add_event(
-                    Event(
-                        EVT_REFERENCE_CREATE_BLOCK, node.id, 0, "create_reference_block"
-                    )
-                )
-
-    def add_worker_commit_block_event(self):
-        pass

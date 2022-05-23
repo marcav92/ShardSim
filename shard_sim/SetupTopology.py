@@ -5,8 +5,8 @@ class Topology:
     def __init__(self):
         self.environment = {
             # TODO: Add the capability of specifying several types of shards
-            "reference_shards": [],
-            "worker_shards": [],
+            REFERENCE: [],
+            WORKER: [],
             "nodes": [],
         }
         # address -> shard
@@ -15,17 +15,20 @@ class Topology:
     def get_nodes(self):
         return self.environment["nodes"]
 
-    def get_worker_shards(self):
-        return self.environment["worker_shards"]
+    def get_shards(self, type):
+        return self.environment[type]
+
+    def get_shard_by_id(self, shard_id):
+        return self.environment[shard_id]
 
     def create_environment(self, shard_array):
 
         for shard in shard_array:
             if shard.type == REFERENCE:
-                self.environment["reference_shards"].append(shard)
+                self.environment[REFERENCE].append(shard)
 
             if shard.type == WORKER:
-                self.environment["worker_shards"].append(shard)
+                self.environment[WORKER].append(shard)
 
         for shard in shard_array:
             self.environment[shard.id] = shard
