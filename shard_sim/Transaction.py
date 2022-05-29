@@ -16,3 +16,9 @@ class Transaction:
             outpus  : {self.receiver}
             amount  : {self.amount}
         """
+
+
+class TransactionRivetCrossShard(Transaction):
+    def __init__(self, timestamp, sender, receiver, id=None, read_write_set={}):
+        super().__init__(timestamp, sender, receiver, id)
+        self.read_write_set = read_write_set

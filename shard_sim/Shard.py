@@ -123,6 +123,9 @@ class Shard_Rivet(Shard):
                         continue
                     self.define_neighbors(node, other_node)
 
+            for node in self.nodes:
+                node.generate_genesis_block()
+
         self.calculate_maximum_amount_faulty_nodes(type)
 
         if type == REFERENCE:
@@ -168,3 +171,9 @@ class Shard_Rivet(Shard):
         self.add_node(node)
         self.n_value += 1
         self.assign_view_numbers()
+
+    def view_id_map_lookup(self, current_view_number):
+        """
+        returns: node_id for the current view number
+        """
+        return self.view_id_map[current_view_number % self.n_value]

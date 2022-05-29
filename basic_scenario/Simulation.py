@@ -11,8 +11,11 @@ from shard_sim.EventHandler import EventHandler
 from shard_sim.Node import NodeL2BasicHotStuff
 from shard_sim.Shard import Shard, Shard_Hot_Stuff, Shard_Rivet
 from shard_sim.TransactionPreprocessor import TransactionPreprocessor as Preprocessor
+from shard_sim.Configuration import Config
 from shard_sim.Constants import *
 import time
+
+Config.init(worker_block_interval=600)
 
 shard_1 = Shard_Rivet(WORKER, 7)
 shard_2 = Shard_Rivet(WORKER, 7)
