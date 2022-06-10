@@ -1,4 +1,5 @@
 from shard_sim.Constants import *
+from shard_sim.Shard import Shard_Rivet
 
 
 class Topology:
@@ -21,9 +22,13 @@ class Topology:
     def get_shard_by_id(self, shard_id):
         return self.environment[shard_id]
 
-    def create_environment(self, shard_array):
+    def create_environment(self, *shard_array):
 
+        shard: Shard_Rivet
         for shard in shard_array:
+
+            shard.set_environment(self.environment)
+
             if shard.type == REFERENCE:
                 self.environment[REFERENCE].append(shard)
 

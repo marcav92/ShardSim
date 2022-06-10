@@ -8,7 +8,7 @@ class DelayModel:
     def exponential_delay(type):
 
         if type == INTRA_SHARD_DELAY:
-            return random.expovariate(1) * Config.intrashard_comm_delay_upper_bound
+            return round(random.expovariate(1) * Config.intrashard_comm_delay_upper_bound)
 
         elif type == WORKER_REFERENCE_COMM_DELAY:
-            return random.expovariate(1.5) * Config.intrashard_comm_delay_upper_bound
+            return round(random.expovariate(1.5) * Config.intrashard_comm_delay_upper_bound)

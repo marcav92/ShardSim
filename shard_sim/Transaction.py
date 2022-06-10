@@ -2,12 +2,12 @@ import uuid
 
 
 class Transaction:
-    def __init__(self, timestamp, sender, receiver, id=None):
+    def __init__(self, timestamp, sender, receiver, amount=0, id=None):
         self.timestamp = timestamp
         self.id = id if id else uuid.uuid4()
         self.sender = sender
         self.receiver = receiver
-        self.amount = 0
+        self.amount = amount
 
     def __repr__(self):
         return f"""

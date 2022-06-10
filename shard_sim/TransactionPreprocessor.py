@@ -25,13 +25,14 @@ class TransactionPreprocessor:
                     {
                         "timestamp": TransactionPreprocessor.str_to_timestamp(line_array[3]),
                         "sender": line_array[6],  # 6 is the position of the sender address  in the tsv file
-                        "recipient": line_array[7],  # 7 is the position of the recipient address
+                        "recipient": line_array[7],  # 7 is     the position of the recipient address
+                        "amount": float(line_array[10]),
                     }
                 )
 
     def str_to_timestamp(time_string):
         date_time_obj = datetime.datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S")
-        return time.mktime(date_time_obj.timetuple())
+        return time.mktime(date_time_obj.timetuple()) * 1000
 
     def assign_accounts_to_shards(self, topology):
         shard_array = topology.get_shards(WORKER)

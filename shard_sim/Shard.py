@@ -111,6 +111,7 @@ class Shard_Rivet(Shard):
         self.view_id_map = {}
         self.f_value = 0
         self.n_value = 0
+        self.environment = None
 
         # reference shard configuration attributes
         if amount_of_nodes:
@@ -129,22 +130,33 @@ class Shard_Rivet(Shard):
         self.calculate_maximum_amount_faulty_nodes(type)
 
         if type == REFERENCE:
-            # TODO implement reference shard specific logic
             pass
 
         if type == WORKER:
-            # TODO implement worker shard specific logic
             pass
 
-    def create_event(topology, shard_id, event_type, time, data):
+    def set_environment(self, environment):
+        self.environment = environment
+
+    def create_event_reference(topology, shard_id, event_type, time, data):
         shard = topology.get_shard_by_id(shard_id)
         selected_node = choice(shard.nodes)
 
         for i in range(shard.get_n_f_value()):
             Queue.add_event(Event(event_type, selected_node.id, time, data))
 
+    def create_event_worker(topology, shard_id, event_type, time, data):
+        shard = topology.get_shard_by_id(shard_id)
+        selected_node = choice(shard.nodes)
+
+        # for i in range(shard.get_f_1_value()):
+        Queue.add_event(Event(event_type, selected_node.id, time, data))
+
     def get_n_f_value(self):
         return self.n_value - self.f_value
+
+    def get_f_1_value(self):
+        return self.f_value - 1
 
     def assign_view_numbers(self):
         for idx, node in enumerate(self.nodes):

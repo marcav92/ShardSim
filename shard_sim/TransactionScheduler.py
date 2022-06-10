@@ -14,26 +14,17 @@ import datetime
 from random import randint
 from shard_sim.Event import Event
 from shard_sim.Queue import Queue
+from shard_sim.SetupTopology import Topology
+from shard_sim.Shard import Shard_Rivet
 from shard_sim.Transaction import Transaction
 from shard_sim.Constants import *
 
 
 class TransactionScheduler:
-    def __init__(
-        self,
-        # environment,
-        # reference_node_frequency,
-        # worker_node_frequency,
-        # with_jitter,
-        # TODO I need to create types of scheduler as different protocols
-        # will need different schedules
-    ):
-        pass
-
-    def calculate_simulation_duration(self, transactions):
+    def calculate_simulation_duration(transactions):
         return transactions[-1]["timestamp"] - transactions[0]["timestamp"]
 
-    def add_transaction_events_to_queue(self, transactions, topology):
+    def add_transaction_events_to_queue(transactions, topology: Topology):
         worker_shards_array = topology.get_shards(WORKER)
 
         for transaction in transactions:
@@ -41,16 +32,13 @@ class TransactionScheduler:
             recipient_shard = topology.addresses_map[transaction["recipient"]]
 
             if sender_shard == recipient_shard:
-                # intrashard transaction
-                # find random node from shard
-                # find timestamp offset
-                # create transaction object with the data
-                # no event id is needed
                 destination_shard = worker_shards_array[sender_shard]
                 nodes = destination_shard.get_nodes()
-                selected_node = randint(0, len(nodes))
+                selected_node = randint(0, len(nodes) - 1)
                 event_time = transaction["timestamp"] - transactions[0]["timestamp"]
-                event_data = Transaction(0, transaction["sender"], transaction["recipient"])
+                event_data = Transaction(
+                    event_time, transaction["sender"], transaction["recipient"], transaction["amount"]
+                )
                 Queue.add_event(
                     Event(
                         EVT_RECEIVE_TRANSACTION,
@@ -61,27 +49,18 @@ class TransactionScheduler:
                 )
 
             else:
-                # crossshard transaction
-                # TODO there are a couple of details that I still need to figure out for
-                # TODO crossshard transactions
-                # it will be necessary to take in consideration how will this happen
-                # in a multilayer topology
-                pass
-
-    # def add_create_block_events_to_queue(self,transactions, topology, period):
-    #     #this is currently going to work for all nodes
-    #     #TODO add the posibility to spcify different frequencies per shard/layer
-    #     node_array = topology.get_nodes()
-
-    #     for node in node_array:
-    #         sim_time=0
-    #         simulation_duration = self.calculate_simulation_duration(transactions)
-    #         while sim_time < simulation_duration:
-    #             if node.shard_type == c.WORKER:
-    #                 Queue.add_event(Event(c.EVT_WORKER_CREATE_BLOCK, node.id, sim_time, 'create_worker_block'))
-    #             elif node.shard_type == c.REFERENCE:
-    #                 Queue.add_event(Event(c.EVT_REFERENCE_CREATE_BLOCK, node.id, sim_time, 'create_reference_block'))
-
-    #             #TODO define other random functions
-    #             jitter = randint(0, period//10)
-    #             sim_time += period + jitter if jitter > period//20 else period - jitter
+                reference_shard: Shard_Rivet = topology.get_shards(REFERENCE)
+                nodes = reference_shard[0].get_nodes()
+                selected_node = randint(0, len(nodes) - 1)
+                event_time = transaction["timestamp"] - transactions[0]["timestamp"]
+                event_data = Transaction(
+                    event_time, transaction["sender"], transaction["recipient"], transaction["amount"]
+                )
+                Queue.add_event(
+                    Event(
+                        EVT_RECEIVE_TRANSACTION,
+                        nodes[selected_node].id,
+                        event_time,
+                        event_data,
+                    )
+                )
