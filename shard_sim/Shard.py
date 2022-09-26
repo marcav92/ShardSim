@@ -147,7 +147,7 @@ class Shard_Rivet(Shard):
 
     def create_event_worker(topology, shard_id, event_type, time, data):
         shard = topology.get_shard_by_id(shard_id)
-        selected_node = choice(shard.nodes)
+        selected_node = shard.nodes[0]
 
         # for i in range(shard.get_f_1_value()):
         Queue.add_event(Event(event_type, selected_node.id, time, data))

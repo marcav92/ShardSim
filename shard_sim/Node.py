@@ -911,6 +911,9 @@ class NodeL2Rivet(NodeL1):
 
         if self.current_phase == CERTIFICATION and event.data["current_view_number"] >= self.current_view_number:
 
+            #testing behavior
+            self.current_view_number = event.data["current_view_number"]
+
             # create request event
             if not self.waiting_for_data:
                 self.waiting_for_data = True
@@ -970,6 +973,8 @@ class NodeL2Rivet(NodeL1):
         # algorithm 4 - might not be necessary
         if self.current_phase == CERTIFICATION and event.data["current_view_number"] >= self.current_view_number:
 
+            # print("view_id_map: "+ str(self.shard.view_id_map))
+
             Queue.add_event(
                 Event(
                     EVT_REFERENCE_RIVET_MESSAGE,
@@ -993,6 +998,7 @@ class NodeL2Rivet(NodeL1):
             self.certification_votes += 1
             if self.certification_votes >= self.shard.get_f_1_value():
                 # block was approved so it should be added to blockchain
+                # print("Im receiving enough votes")
                 self.blockchain.append(self.last_proposed_block)
                 # do commit
                 Queue.add_event(
@@ -1010,6 +1016,7 @@ class NodeL2Rivet(NodeL1):
                     )
                 )
 
+                # print("next proposal after commit")
                 # schedule next proposal phase
 
                 Queue.add_event(
@@ -1019,7 +1026,7 @@ class NodeL2Rivet(NodeL1):
                         event.time + DelayModel.exponential_delay(INTRA_SHARD_DELAY),
                         {
                             "type": EVT_WORKER_RIVET_PROPOSAL_MESSAGE,
-                            "current_view_number": self.current_view_number,
+                            "current_view_number": self.current_view_number+1,
                         },
                     )
                 )
