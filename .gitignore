@@ -1,6 +1,8 @@
 # custom ignores
 
 static_data/
+**/topology.txt
+**/raw_profiles.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

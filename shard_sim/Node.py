@@ -764,7 +764,7 @@ class NodeL2Rivet(NodeL1):
         )
 
     def reference_receive_commit_block_state(self, event: Event):
-        print(event)
+        # print(event)
         self.commitments_pool.append(
             {"shard_id": event.data["shard_id"], "block_id": event.data["block_id"], "state": event.data["state"]}
         )
@@ -911,7 +911,7 @@ class NodeL2Rivet(NodeL1):
 
         if self.current_phase == CERTIFICATION and event.data["current_view_number"] >= self.current_view_number:
 
-            #testing behavior
+            # testing behavior
             self.current_view_number = event.data["current_view_number"]
 
             # create request event
@@ -1026,7 +1026,7 @@ class NodeL2Rivet(NodeL1):
                         event.time + DelayModel.exponential_delay(INTRA_SHARD_DELAY),
                         {
                             "type": EVT_WORKER_RIVET_PROPOSAL_MESSAGE,
-                            "current_view_number": self.current_view_number+1,
+                            "current_view_number": self.current_view_number + 1,
                         },
                     )
                 )

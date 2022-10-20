@@ -2,6 +2,7 @@ import time
 from new_shard_sim.Queue import Queue
 from new_shard_sim.Event import Event
 from new_shard_sim.Constants import *
+from new_shard_sim.Logger import Logger
 
 
 class Engine:
@@ -15,8 +16,8 @@ class Engine:
             event: Event = Queue.get_next_event()
             self.now = event.time
             if DEBUG:
-                print(event)
-                time.sleep(0.5)
+                Logger.log_message(ENGINE, self.now, event, event.shard_id)
+                # time.sleep(0.5)
             if event.handler_name in Engine.handlers:
                 Engine.handlers[event.handler_name](event)
             else:

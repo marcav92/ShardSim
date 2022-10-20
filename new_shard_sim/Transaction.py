@@ -4,7 +4,7 @@ import uuid
 class Transaction:
     def __init__(self, timestamp, sender, recipient, amount=0, id=None):
         self.timestamp = timestamp
-        self.id = id if id else uuid.uuid4()
+        self.id = id if id else str(uuid.uuid4())
         self.sender = sender
         self.recipient = recipient
         self.amount = amount

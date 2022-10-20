@@ -30,7 +30,7 @@ Engine.register_handler(HANDLER_METRICS_AGGREGATE, metrics_aggregate_handler)
 
 
 def metrics_aggregate_output_handler(event: Event):
-    Topology.metrics_aggregator.get_amount_output_transactions_in_time_delta(event.time)
+    Topology.metrics_aggregator.get_amount_output_transactions_in_time_delta_with_stack(event.time)
     Topology.metrics_aggregator.schedule_new_event(
         event, EVT_METRICS_AGGREGATE_OUTPUT, HANDLER_METRICS_AGGREGATE_OUTPUT
     )
