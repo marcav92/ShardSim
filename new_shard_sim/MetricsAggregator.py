@@ -11,14 +11,6 @@ from new_shard_sim.Constants import *
 
 class MetricsAggregator:
     def __init__(self, path):
-        # transaction input nad output profile
-        # {cross shard transactions :{
-        #   current_time : transaction amount
-        # }
-        # shard_id (leaf shard) :{
-        #   current_time : transaction amount
-        # }
-        # }
         self.transaction_input_profile = {}
         self.transaction_output_profile = {}
         self.transaction_latency_profile = {}
@@ -96,34 +88,23 @@ class MetricsAggregator:
         while search_stack != []:
             current_shard = search_stack.pop()
 
-            Logger.log_message(METRICS_AGGREGATOR, current_time, f"checking: {current_shard.name}")
             if current_shard.id == Topology.root_shard.id:
                 latest_blocks = current_shard.blockchain.get_latest_blocks(self.progress_map[str(current_shard.id)])
-                # print("extracted latest blocks from root")
             else:
 
                 if (
                     current_shard.id in child_committed_block_index
                     and self.progress_map[current_shard.id] != child_committed_block_index[current_shard.id]
                 ):
-                    # print(f"progress_map value {self.progress_map[current_shard.id]}")
-                    # print(f"child committed block index {child_committed_block_index[current_shard.id]}")
                     latest_blocks = current_shard.blockchain.get_blocks_within_height_range(
                         self.progress_map[current_shard.id], child_committed_block_index[current_shard.id]
                     )
-                    # print(f"extracted latest blocks from child {current_shard.id}")
+
                 else:
                     continue
 
-            # if latest_blocks == []:
-            #     continue
-            Logger.log_message(
-                METRICS_AGGREGATOR, current_time, f"latest blocks for {current_shard.name} are {latest_blocks}"
-            )
             if latest_blocks:
                 self.progress_map[current_shard.id] = latest_blocks[-1].height
-
-            # print("traversing latest blocks")
 
             amount_output_transactions = 0
             for block in latest_blocks:
@@ -141,17 +122,11 @@ class MetricsAggregator:
                 search_stack += current_shard.children
 
             total_transactions_in_search += amount_output_transactions
-            Logger.log_message(
-                METRICS_AGGREGATOR, current_time, f"Found {amount_output_transactions} in {current_shard.name}"
-            )
+
             if current_shard.children:
                 self.transaction_output_profile["cross_shard_transactions"][current_time] += amount_output_transactions
             else:
                 self.transaction_output_profile[str(current_shard.id)][current_time] += amount_output_transactions
-
-        Logger.log_message(
-            METRICS_AGGREGATOR, current_time, f"finished search and found a total of {total_transactions_in_search}"
-        )
 
     def schedule_kickoff_events(self):
         Queue.add_event(
@@ -167,8 +142,7 @@ class MetricsAggregator:
         Queue.add_event(Event(EVT_METRICS_AGGREGATE_OUTPUT, 0, 0, "", HANDLER_METRICS_AGGREGATE_OUTPUT))
 
     def dump_metrics(self, file_name):
-        # throughput
-        # print(self.transaction_latency_profile)
+
         with open(f"{self.path}/raw_profiles.txt", "a") as file:
             file.write(f"{json.dumps(self.transaction_input_profile)} \n")
             file.write(f"{json.dumps(self.transaction_output_profile)} \n")

@@ -1,7 +1,7 @@
 from distutils.debug import DEBUG
 
 
-DEBUG = True
+DEBUG = False
 BLOCK_SIZE = 100
 BLOCK_CREATION_INTERVAL = 500
 
@@ -11,12 +11,16 @@ METRICS_AGGREGATOR = "metrics_aggregator"
 
 CST_MILISECONDS_IN_DAY = 86400 * 1000
 CST_EXP_DELAY_LAMBDA = 10
-CST_METRICS_SAMPLING_PERIOD = 100
+CST_METRICS_SAMPLING_PERIOD = 1000
 
 ARG_TRANSACTIONS_INPUT_FILE = "transactions_input_file"
 ARG_SHARDS = "shards"
 ARGS_METRICS_AGGREGATOR = "metrics_aggregator"
 ARGS_ROOT_SHARD = "root_shard"
+ARGS_COMPUTE_TRANSACTION_SUBGRAPHS = "compute_transaction_subgraphs"
+ARGS_TXS_LABELS_FILE_PREFIX = "txs_label_file_prefix"
+ARGS_TXS_GRAPH_NODES_FILE_NAME = "txs_graph_nodes_file_name"
+ARGS_TXS_SPEC_LABELS_FILE_NAME = "txs_spec_labels_file_name"
 
 HANDLER_CREATE_BLOCK = "handler_create_block"
 HANDLER_RECEIVE_TRANSACTION = "handler_receive_block"

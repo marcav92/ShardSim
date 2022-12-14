@@ -39,7 +39,9 @@ shard_6.define_parent(shard_3)
 shard_7.define_parent(shard_3)
 
 Topology.init(
-    transactions_input_file="static_data/blockchair_ethereum_transactions_20160618 copy.tsv",
+    transactions_input_file="static_data/blockchair_ethereum_transactions_20161115.tsv",
+    txs_graph_nodes_file_name="precomputed_graphs/20161115/20161115_txs_graph_nodes.txt",
+    txs_spec_labels_file_name="precomputed_graphs/20161115/20161115_spectral_clustering_labels.txt",
     shards=[shard_1, shard_2, shard_3, shard_4, shard_5, shard_6, shard_7],
     root_shard=shard_1,
 )
@@ -50,4 +52,4 @@ metrics_aggregator = MetricsAggregator(dt_string)
 
 Topology.set_metrics_aggregator(metrics_aggregator)
 
-Engine().run(time_limit=5000, metrics_aggregator=metrics_aggregator)
+Engine().run(time_limit=50000, metrics_aggregator=metrics_aggregator)
