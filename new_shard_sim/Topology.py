@@ -2,6 +2,7 @@ import string
 import time
 import datetime
 import copy
+from random import random
 
 from new_shard_sim.Queue import Queue
 from new_shard_sim.Event import Event
@@ -16,6 +17,7 @@ class Topology:
 
     shard_map = {}
     shard_leaf_map = {}
+    shard_tree = {}
 
     root_shard = None
 
@@ -43,6 +45,8 @@ class Topology:
 
         cls.root_shard = args[ARGS_ROOT_SHARD]
 
+        cls.create_shard_tree()
+
         if ARG_TRANSACTIONS_INPUT_FILE in args:
             cls.load_transactions_from_file(args[ARG_TRANSACTIONS_INPUT_FILE])
             if ARGS_COMPUTE_TRANSACTION_SUBGRAPHS in args:
@@ -66,15 +70,13 @@ class Topology:
         string_graphic_dict = {}
         while search_stack != []:
             current_shard = search_stack.pop(0)
-            if current_shard.depth in string_graphic_dict:
-                string_graphic_dict[current_shard.depth] += f"<{current_shard.name}:{current_shard.id}>"
-            else:
-                string_graphic_dict[current_shard.depth] = f"<{current_shard.name}:{current_shard.id}>"
+            string_graphic_dict[current_shard.id] = {}
+            for idx, child in enumerate(current_shard.children):
+                string_graphic_dict[current_shard.id][idx] = child.id
             search_stack += current_shard.children
 
         return f"""
-            shard_map: {cls.shard_map}
-            root_shard: {string_graphic_dict}
+            {string_graphic_dict}
         """
 
     @classmethod
@@ -83,6 +85,19 @@ class Topology:
             cls.shard_map[str(shard.id)] = shard
             if not shard.children:
                 cls.shard_leaf_map[str(shard.id)] = shard
+
+    @classmethod
+    def create_shard_tree(cls):
+        search_stack = [cls.root_shard]
+        shard_tree_dict = {}
+        while search_stack != []:
+            current_shard = search_stack.pop(0)
+            shard_tree_dict[current_shard.id] = {}
+            for idx, child in enumerate(current_shard.children):
+                shard_tree_dict[current_shard.id][idx] = child.id
+            search_stack += current_shard.children
+
+        cls.shard_tree = shard_tree_dict
 
     @classmethod
     def set_metrics_aggregator(cls, metrics_aggregator):
@@ -161,7 +176,9 @@ class Topology:
         shard_map_keys = list(cls.shard_leaf_map.keys())
 
         for idx, node in enumerate(transaction_graph_nodes):
-            cls.address_map[node] = shard_map_keys[int(spectral_clustering_labels[idx])]
+            cls.address_map[node] = shard_map_keys[
+                int(spectral_clustering_labels[idx]) if random() > 0.5 else idx % len(shard_map_keys)
+            ]
 
     @classmethod
     def create_address_map(cls):
@@ -252,3 +269,18 @@ class Topology:
                     HANDLER_RECEIVE_TRANSACTION,
                 )
             )
+
+    @classmethod
+    def reset(cls):
+        cls.shard_map = {}
+        cls.shard_leaf_map = {}
+        cls.shard_tree = {}
+
+        cls.root_shard = None
+
+        # address -> shard_id
+        cls.address_map = {}
+
+        cls.raw_transactions = []
+
+        cls.metrics_aggregator = None

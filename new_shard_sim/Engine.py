@@ -25,6 +25,7 @@ class Engine:
                 raise BaseException("handler name is not registered")
 
         metrics_aggregator.dump_metrics("profile")
+        metrics_aggregator.report("report_average_metrics")
         print("Queue is empty, ending simulation")
 
     @classmethod

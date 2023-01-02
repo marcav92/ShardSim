@@ -3,7 +3,8 @@
 static_data/
 **/topology.txt
 **/raw_profiles.txt
-*.cvs
+*.csv
+*.tsv
 *.txt
 
 # Byte-compiled / optimized / DLL files

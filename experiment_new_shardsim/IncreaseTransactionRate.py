@@ -3,6 +3,7 @@ import os
 
 DATE_DATA_POSITION = 3
 DATA_DIRECTORY = "static_data"
+OUTPUT_DATA_DIRECTORY = "processed_input_data/accelerated_dumps"
 rates_per_second = [100, 200, 300]
 
 
@@ -41,11 +42,13 @@ if __name__ == "__main__":
     rates_per_second = [100, 200, 300]
     files = os.listdir(DATA_DIRECTORY)
 
+    os.makedirs(OUTPUT_DATA_DIRECTORY, exist_ok=True)
+
     for rate in rates_per_second:
-        os.mkdir(f"{DATA_DIRECTORY}/{str(rate)}")
+        os.makedirs(f"{OUTPUT_DATA_DIRECTORY}/{str(rate)}", exist_ok=True)
         for file in files:
             modify_transaction_rate_of_file(
                 f"{DATA_DIRECTORY}/{file}",
-                f"{DATA_DIRECTORY}/{str(rate)}/{file.split('.')[0]}-rate-{rate}.tsv",
+                f"{OUTPUT_DATA_DIRECTORY}/{str(rate)}/{file.split('.')[0]}-rate-{rate}.tsv",
                 rate,
             )

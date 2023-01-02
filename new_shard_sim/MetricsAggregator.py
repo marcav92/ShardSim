@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 import json
 
+from numpy import average
+
 from new_shard_sim.Topology import Topology
 from new_shard_sim.Queue import Queue
 from new_shard_sim.Event import Event
@@ -17,6 +19,7 @@ class MetricsAggregator:
         self.init_profiles()
         self.schedule_kickoff_events()
         self.path = path
+        self.last_block_timestamp = 0
 
         # shard_id -> blockchain height that has been aggregated
         self.progress_map = self.initialize_progress_map()
@@ -110,6 +113,10 @@ class MetricsAggregator:
             for block in latest_blocks:
                 amount_output_transactions += len(block.transactions)
 
+                if block.transactions:
+                    if block.timestamp > self.last_block_timestamp:
+                        self.last_block_timestamp = block.timestamp
+
                 for transaction in block.transactions:
                     latency = current_time - transaction.timestamp
                     self.transaction_latency_profile[current_shard.id][transaction.id] = latency
@@ -120,8 +127,6 @@ class MetricsAggregator:
 
             if current_shard.children:
                 search_stack += current_shard.children
-
-            total_transactions_in_search += amount_output_transactions
 
             if current_shard.children:
                 self.transaction_output_profile["cross_shard_transactions"][current_time] += amount_output_transactions
@@ -196,6 +201,94 @@ class MetricsAggregator:
 
         with open(f"{self.path}/topology.txt", "a") as file:
             file.write(Topology.print_class())
+            file.close()
+
+    def report(self, file_name):
+        # average intra_shard_latency
+        amount_transactions = 0
+        intra_shard_latency_accum = 0
+        for shard_id in Topology.shard_leaf_map.keys():
+            for transaction_latency in self.transaction_latency_profile[shard_id].values():
+                intra_shard_latency_accum += transaction_latency
+                amount_transactions += 1
+
+        average_intra_shard_latency = intra_shard_latency_accum / amount_transactions
+
+        # average intra_shard_throughput
+
+        # partial_average_intrashard_throughput = 0
+        # for shard_id in Topology.shard_leaf_map.keys():
+
+        #     metric_accum = 0
+        #     intra_shard_accum = 0
+        #     amount_samples = 0
+        #     for time, metric in self.transaction_output_profile[shard_id].items():
+        #         metric_accum += metric
+
+        #         if time > self.last_block_timestamp:
+        #             break
+
+        #         if time % REPORT_METRICS_PERIOD == 0:
+        #             amount_samples += 1
+        #             intra_shard_accum = metric_accum
+        #             metric_accum = 0
+
+        #     partial_average_intrashard_throughput += intra_shard_accum / amount_samples
+
+        most_active_shard_id = None
+        most_active_shard_transaction_amount = 0
+        for shard_id in Topology.shard_leaf_map.keys():
+
+            metric_accum = 0
+            for time, metric in self.transaction_output_profile[shard_id].items():
+                metric_accum += metric
+
+                if time > self.last_block_timestamp:
+                    break
+
+            if metric_accum > most_active_shard_transaction_amount:
+                most_active_shard_transaction_amount = metric_accum
+                most_active_shard_id = shard_id
+
+        amount_samples = 0
+        for time in self.transaction_output_profile[most_active_shard_id].keys():
+            if time > self.last_block_timestamp:
+                break
+            if time % REPORT_METRICS_PERIOD == 0:
+                amount_samples += 1
+
+        average_intrashard_throughput = most_active_shard_transaction_amount / amount_samples
+
+        # cross_shard_latency
+        # lets get an average of root shard
+        # Topology.root_shard.id
+        # self.transaction_latency_profile
+
+        average_cross_shard_latency = sum(
+            [
+                transaction_latency
+                for transaction_latency in self.transaction_latency_profile[Topology.root_shard.id].values()
+            ]
+        ) / len(self.transaction_latency_profile[Topology.root_shard.id].values())
+
+        # cross_shard_throughgput
+        metric_accum = 0
+        amount_samples = 0
+        for time, metric in self.transaction_output_profile["cross_shard_transactions"].items():
+            metric_accum += metric
+
+            if time > self.last_block_timestamp:
+                break
+
+            if time % REPORT_METRICS_PERIOD == 0:
+                amount_samples += 1
+
+        average_cross_shard_throughput = metric_accum / amount_samples
+
+        report = f"{average_intrashard_throughput},{average_intra_shard_latency},{average_cross_shard_throughput},{average_cross_shard_latency}"
+
+        with open(f"{self.path}/{file_name}.csv", "a") as file:
+            file.write(report)
             file.close()
 
     def schedule_new_event(self, event, event_type, event_handler):
