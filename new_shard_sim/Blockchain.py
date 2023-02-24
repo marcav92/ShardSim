@@ -27,6 +27,16 @@ class Blockchain:
                     return block
         return None
 
+    def get_not_commited_blocks(self):
+        not_comitted_blocks = []
+
+        if self.blockchain:
+            for block in self.blockchain:
+                if not block.parent_height:
+                    not_comitted_blocks.append(block)
+
+        return not_comitted_blocks
+
     def get_blocks_within_height_range(self, height_1, height_2):
         # height_2-1+1=height_2
         return self.blockchain[height_1:height_2]

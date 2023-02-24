@@ -9,10 +9,9 @@
 
 import sys
 import os
+import traceback
 from datetime import datetime
 from collections import namedtuple
-
-from numpy import number
 
 sys.path.insert(0, "..")
 
@@ -28,17 +27,11 @@ from new_shard_sim.Constants import *
 from new_shard_sim.ArchitectureGenerator import ArchitectureGenerator
 
 
-def run_permutation(
-    number_shards,
-    number_children,
-    number_levels,
-    transaction_rate,
-    transactions_input_file,
-):
+def run_permutation(number_shards, number_children, number_levels, transaction_rate, transactions_input_file, run):
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y_%H:%M:%S")
     working_directory_name = (
-        f"run-{number_shards}-shards-{number_children}-children-{number_levels}-levels-{transaction_rate}-txs-s"
+        f"run-{number_shards}-shards-{number_children}-children-{number_levels}-levels-{transaction_rate}-txs"
     )
     path = f"{working_directory_name}/{dt_string}"
 
@@ -50,13 +43,12 @@ def run_permutation(
 
     amount_subgraphs = len([shard for shard in shard_array if shard.children == []])
 
-    print(f"root shard: {root_shard}")
-    print(f"shard array: {shard_array}")
+    print(f"amount subgraphs {amount_subgraphs}")
 
     Topology.init(
         transactions_input_file=transactions_input_file,
-        txs_graph_nodes_file_name=f"precomputed_graphs/{amount_subgraphs}/{transactions_input_file.split('/')[3].split('-')[0].split('_')[3]}_txs_graph_nodes.txt",
-        txs_spec_labels_file_name=f"precomputed_graphs/{amount_subgraphs}/{transactions_input_file.split('/')[3].split('-')[0].split('_')[3]}_spectral_clustering_labels.txt",
+        txs_graph_nodes_file_name=f"precomputed_graphs/{amount_subgraphs}/{number_shards}-{number_children}-{number_levels}-{run}-txs_graph_nodes.txt",
+        txs_spec_labels_file_name=f"precomputed_graphs/{amount_subgraphs}/{number_shards}-{number_children}-{number_levels}-{run}-labels.txt",
         shards=shard_array,
         root_shard=root_shard,
     )
@@ -67,9 +59,7 @@ def run_permutation(
 
     Topology.set_metrics_aggregator(metrics_aggregator)
 
-    Engine().run(time_limit=500000, metrics_aggregator=metrics_aggregator)
-
-    Topology.reset()
+    Engine().run(time_limit=5000000, metrics_aggregator=metrics_aggregator)
 
 
 Combination = namedtuple("Combination", ["shards", "children", "levels"])
@@ -82,7 +72,7 @@ POSSIBLE_COMBINATIONS = [
     Combination(5, 10, 2),
     Combination(10, 3, 3),
     Combination(10, 5, 3),
-    Combination(10, 10, 3),
+    Combination(10, 10, 2),
     Combination(15, 3, 4),
     Combination(15, 5, 3),
     Combination(15, 10, 3),
@@ -98,18 +88,33 @@ POSSIBLE_COMBINATIONS = [
 
 TRANSACTION_RATES = [100, 200, 300]
 
-for combination in POSSIBLE_COMBINATIONS:
-    print(f"Running simulation for {combination}")
-    for transaction_rate in TRANSACTION_RATES:
-        print(f"Running simulation with {transaction_rate}")
-        transaction_file_list = os.listdir(f"processed_input_data/accelerated_dumps/{transaction_rate}")
+AMOUNT_OF_RUNS = 5
 
-        for transaction_file in transaction_file_list:
+
+for i in range(AMOUNT_OF_RUNS):
+    for combination in POSSIBLE_COMBINATIONS:
+        print(f"Running simulation for {combination}")
+        for transaction_rate in TRANSACTION_RATES:
+            print(f"Running simulation with {transaction_rate}")
+            # transaction_file_list = os.listdir(f"processed_input_data/accelerated_dumps/{transaction_rate}")
+            transaction_file = f"{combination.shards}-{combination.children}-{combination.levels}-{i}-txs-file-rate-{transaction_rate}.tsv"
+            # for transaction_file in transaction_file_list:
             print(f"Running simulation with tx file: {transaction_file}")
-            run_permutation(
-                number_shards=combination.shards,
-                number_children=combination.children,
-                number_levels=combination.levels,
-                transaction_rate=transaction_rate,
-                transactions_input_file=f"processed_input_data/accelerated_dumps/{transaction_rate}/{transaction_file}",
-            )
+            try:
+                run_permutation(
+                    number_shards=combination.shards,
+                    number_children=combination.children,
+                    number_levels=combination.levels,
+                    transaction_rate=transaction_rate,
+                    transactions_input_file=f"processed_input_data/accelerated_dumps/{transaction_rate}/{transaction_file}",
+                    run=i,
+                )
+
+            except Exception as exc:
+                print(traceback.format_exc())
+                print(
+                    f"A error occured while running simulation for combination {combination}, transaction rate {transaction_rate} and transaction_file {transaction_file}: {exc}"
+                )
+
+            Topology.reset()
+            Queue.reset()

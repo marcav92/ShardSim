@@ -33,6 +33,5 @@ class Block:
             shard_id     : {self.shard_id}
             shard_name   : {self.shard_name}
             parent_height: {self.parent_height}
-            transactions : {self.transactions}
             child_blocks : {self.child_blocks}
         """

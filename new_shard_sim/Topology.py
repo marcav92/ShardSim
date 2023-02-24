@@ -175,9 +175,16 @@ class Topology:
     def map_spectral_cluster_labels_to_shards(cls, transaction_graph_nodes, spectral_clustering_labels):
         shard_map_keys = list(cls.shard_leaf_map.keys())
 
+        print(f"transaction graph nodes {len(transaction_graph_nodes)}")
+
+        print(f"spectral clustering labels length {len(spectral_clustering_labels)}")
+
+        print(f"shard map keys length {len(shard_map_keys)}")
+
         for idx, node in enumerate(transaction_graph_nodes):
             cls.address_map[node] = shard_map_keys[
-                int(spectral_clustering_labels[idx]) if random() > 0.5 else idx % len(shard_map_keys)
+                # int(spectral_clustering_labels[idx]) if random() > 0.5 else idx % len(shard_map_keys)
+                int(spectral_clustering_labels[idx])
             ]
 
     @classmethod

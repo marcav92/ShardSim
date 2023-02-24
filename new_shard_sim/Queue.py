@@ -24,3 +24,6 @@ class Queue:
 
     def isEmpty():
         return len(Queue.event_list) == 0
+
+    def reset():
+        Queue.event_list = []

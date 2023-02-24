@@ -22,13 +22,13 @@ os.mkdir(f"{dt_string}")
 print(os.getcwd())
 
 root_shard, shard_array = ArchitectureGenerator.generate_architecture(
-    number_shards=10, number_children=5, number_levels=3
+    number_shards=10, number_children=10, number_levels=2
 )
 
 Topology.init(
-    transactions_input_file="static_data/200/blockchair_ethereum_transactions_20161115-rate-200.tsv",
-    txs_graph_nodes_file_name="precomputed_graphs/20161115-5c-3l-10/20161115_txs_graph_nodes.txt",
-    txs_spec_labels_file_name="precomputed_graphs/20161115-5c-3l-10/20161115_spectral_clustering_labels.txt",
+    transactions_input_file="/home/marco/ShardSim/experiment_new_shardsim/processed_input_data/accelerated_dumps/100/10-10-2-txs-file-rate-100.tsv",
+    txs_graph_nodes_file_name="/home/marco/ShardSim/experiment_new_shardsim/precomputed_graphs/9/10-10-2-txs_graph_nodes.txt",
+    txs_spec_labels_file_name="/home/marco/ShardSim/experiment_new_shardsim/precomputed_graphs/9/10-10-2-labels.txt",
     shards=shard_array,
     root_shard=root_shard,
 )
@@ -38,6 +38,8 @@ Logger.init(dt_string)
 metrics_aggregator = MetricsAggregator(dt_string)
 
 Topology.set_metrics_aggregator(metrics_aggregator)
+
+# print(Topology.print_class())
 
 
 Engine().run(time_limit=500000, metrics_aggregator=metrics_aggregator)

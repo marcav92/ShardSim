@@ -88,11 +88,17 @@ class MetricsAggregator:
         for record in self.transaction_output_profile.keys():
             self.transaction_output_profile[record][current_time] = 0
 
+        # print(f"metric_agg {current_time}: beginning search while")
         while search_stack != []:
+            # print([f"{Topology.shard_map[key].name}:{value}" for key, value in self.progress_map.items()])
+            # print("child_committed_block_index")
+            # print([f"{Topology.shard_map[key].name}:{value}" for key, value in child_committed_block_index.items()])
+            # print(f"metric_agg {current_time}: current search stack {[shard.name for shard in search_stack]}")
             current_shard = search_stack.pop()
-
+            # print(f"metric_agg {current_time}: current shard {current_shard.name}")
             if current_shard.id == Topology.root_shard.id:
                 latest_blocks = current_shard.blockchain.get_latest_blocks(self.progress_map[str(current_shard.id)])
+                # print(f"metric_agg {current_time}: root shard being analyzed")
             else:
 
                 if (
@@ -104,7 +110,10 @@ class MetricsAggregator:
                     )
 
                 else:
+                    # print("didn't find new blocks")
                     continue
+
+            # print(f"metric_agg {current_time}: latest_blocks length {len(latest_blocks)}")
 
             if latest_blocks:
                 self.progress_map[current_shard.id] = latest_blocks[-1].height
@@ -113,16 +122,19 @@ class MetricsAggregator:
             for block in latest_blocks:
                 amount_output_transactions += len(block.transactions)
 
+                # print(f"metric_agg {current_time}: {current_shard.name} found {len(block.transactions)} txs")
+
                 if block.transactions:
-                    if block.timestamp > self.last_block_timestamp:
-                        self.last_block_timestamp = block.timestamp
+                    self.last_block_timestamp = current_time
 
                 for transaction in block.transactions:
                     latency = current_time - transaction.timestamp
                     self.transaction_latency_profile[current_shard.id][transaction.id] = latency
 
+                # print(f"block child blocks length {len(block.child_blocks)}")
                 if block.child_blocks:
                     for child_block in block.child_blocks:
+                        # print(f"this is a child block {child_block}")
                         child_committed_block_index[child_block.shard_id] = child_block.height
 
             if current_shard.children:
@@ -132,6 +144,8 @@ class MetricsAggregator:
                 self.transaction_output_profile["cross_shard_transactions"][current_time] += amount_output_transactions
             else:
                 self.transaction_output_profile[str(current_shard.id)][current_time] += amount_output_transactions
+
+        # print(f"metric_agg {current_time}: finished aggregating step")
 
     def schedule_kickoff_events(self):
         Queue.add_event(
@@ -212,7 +226,7 @@ class MetricsAggregator:
                 intra_shard_latency_accum += transaction_latency
                 amount_transactions += 1
 
-        average_intra_shard_latency = intra_shard_latency_accum / amount_transactions
+        average_intra_shard_latency = intra_shard_latency_accum / amount_transactions if amount_transactions > 0 else 0
 
         # average intra_shard_throughput
 
@@ -264,12 +278,17 @@ class MetricsAggregator:
         # Topology.root_shard.id
         # self.transaction_latency_profile
 
-        average_cross_shard_latency = sum(
-            [
-                transaction_latency
-                for transaction_latency in self.transaction_latency_profile[Topology.root_shard.id].values()
-            ]
-        ) / len(self.transaction_latency_profile[Topology.root_shard.id].values())
+        try:
+            average_cross_shard_latency = sum(
+                [
+                    transaction_latency
+                    for transaction_latency in self.transaction_latency_profile[Topology.root_shard.id].values()
+                ]
+            ) / len(self.transaction_latency_profile[Topology.root_shard.id].values())
+
+        except:
+            print("Warning: no cross shard transactions detected in report")
+            average_cross_shard_latency = 0
 
         # cross_shard_throughgput
         metric_accum = 0
@@ -283,7 +302,11 @@ class MetricsAggregator:
             if time % REPORT_METRICS_PERIOD == 0:
                 amount_samples += 1
 
-        average_cross_shard_throughput = metric_accum / amount_samples
+        try:
+            average_cross_shard_throughput = metric_accum / amount_samples
+        except:
+            print("Warning: no cross shard transactions detected in report")
+            average_cross_shard_throughput = 0
 
         report = f"{average_intrashard_throughput},{average_intra_shard_latency},{average_cross_shard_throughput},{average_cross_shard_latency}"
 
