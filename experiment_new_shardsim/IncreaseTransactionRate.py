@@ -5,6 +5,9 @@ DATE_DATA_POSITION = 3
 DATA_DIRECTORY = "static_data"
 OUTPUT_DATA_DIRECTORY = "processed_input_data/accelerated_dumps"
 rates_per_second = [100, 200, 300]
+CROSS_SHARD_TRANSACTION_RATIOS = [
+    0.1,0.25,0.5
+]
 
 
 def modify_transaction_rate_of_file(input_file_path, output_file_path, rate_per_second):
@@ -40,15 +43,18 @@ def modify_transaction_rate_of_file(input_file_path, output_file_path, rate_per_
 
 if __name__ == "__main__":
     rates_per_second = [100, 200, 300]
-    files = os.listdir(DATA_DIRECTORY)
-
     os.makedirs(OUTPUT_DATA_DIRECTORY, exist_ok=True)
+    
 
-    for rate in rates_per_second:
-        os.makedirs(f"{OUTPUT_DATA_DIRECTORY}/{str(rate)}", exist_ok=True)
-        for file in files:
-            modify_transaction_rate_of_file(
-                f"{DATA_DIRECTORY}/{file}",
-                f"{OUTPUT_DATA_DIRECTORY}/{str(rate)}/{file.split('.')[0]}-rate-{rate}.tsv",
-                rate,
-            )
+
+
+    for crossshard_transaction_ration in CROSS_SHARD_TRANSACTION_RATIOS:
+        files = os.listdir(os.path.join(DATA_DIRECTORY,str(crossshard_transaction_ration)))
+        for rate in rates_per_second:
+            os.makedirs(f"{OUTPUT_DATA_DIRECTORY}/{str(crossshard_transaction_ration)}/{str(rate)}", exist_ok=True)
+            for file in files:
+                modify_transaction_rate_of_file(
+                    f"{DATA_DIRECTORY}/{str(crossshard_transaction_ration)}/{file}",
+                    f"{OUTPUT_DATA_DIRECTORY}/{str(crossshard_transaction_ration)}/{str(rate)}/{file.split('.')[0]}-rate-{rate}.tsv",
+                    rate,
+                )
